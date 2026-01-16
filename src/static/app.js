@@ -44,6 +44,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Authentication state
   let currentUser = null;
 
+  // Helper function to escape HTML for safe insertion into attributes
+  function escapeHtml(unsafe) {
+    if (unsafe === null || unsafe === undefined) {
+      return "";
+    }
+    return String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Time range mappings for the dropdown
   const timeRanges = {
     morning: { start: "06:00", end: "08:00" }, // Before school hours
@@ -553,7 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       </div>
       <div class="share-buttons">
-        <button class="share-button" data-activity="${name}" data-description="${details.description}" data-schedule="${formattedSchedule}" title="Share this activity">
+        <button class="share-button" data-activity="${escapeHtml(name)}" data-description="${escapeHtml(details.description)}" data-schedule="${escapeHtml(formattedSchedule)}" title="Share this activity">
           <span class="share-icon">🔗</span>
           <span class="share-text">Share</span>
         </button>
@@ -911,18 +924,82 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .catch((error) => {
           console.error("Failed to copy to clipboard:", error);
-          showMessage(
-            "Unable to share. Please copy the activity details manually.",
-            "info"
-          );
+          showShareModal(fullText);
         });
     } else {
-      // Last resort - show the text in an alert
-      showMessage(
-        "Share this activity by copying the text below and sharing with friends.",
-        "info"
-      );
-      prompt("Copy this text to share:", fullText);
+      // Clipboard API not available - show modal with text
+      showShareModal(fullText);
+    }
+  }
+
+  // Show a modal with shareable text for manual copying
+  function showShareModal(textToShare) {
+    // Create or get the share modal
+    let shareModal = document.getElementById("share-text-modal");
+    if (!shareModal) {
+      shareModal = document.createElement("div");
+      shareModal.id = "share-text-modal";
+      shareModal.className = "modal hidden";
+      shareModal.innerHTML = `
+        <div class="modal-content">
+          <span class="close-share-modal">&times;</span>
+          <h3>Share Activity</h3>
+          <p>Copy the text below to share this activity:</p>
+          <textarea id="share-text-area" readonly style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: Arial, sans-serif; font-size: 0.9rem; resize: vertical;"></textarea>
+          <button id="copy-share-text-button" style="margin-top: 10px; width: 100%;">Copy to Clipboard</button>
+        </div>
+      `;
+      document.body.appendChild(shareModal);
+
+      // Add event listeners
+      const closeBtn = shareModal.querySelector(".close-share-modal");
+      closeBtn.addEventListener("click", closeShareModal);
+
+      shareModal.addEventListener("click", (event) => {
+        if (event.target === shareModal) {
+          closeShareModal();
+        }
+      });
+    }
+
+    // Set the text and show the modal
+    const textArea = document.getElementById("share-text-area");
+    textArea.value = textToShare;
+    
+    // Set up copy button
+    const copyButton = document.getElementById("copy-share-text-button");
+    const newCopyButton = copyButton.cloneNode(true);
+    copyButton.parentNode.replaceChild(newCopyButton, copyButton);
+    
+    newCopyButton.addEventListener("click", () => {
+      textArea.select();
+      textArea.setSelectionRange(0, 99999); // For mobile devices
+      
+      try {
+        document.execCommand("copy");
+        showMessage("Text copied to clipboard!", "success");
+        closeShareModal();
+      } catch (error) {
+        console.error("Failed to copy:", error);
+        showMessage("Please manually select and copy the text above.", "info");
+      }
+    });
+
+    shareModal.classList.remove("hidden");
+    setTimeout(() => {
+      shareModal.classList.add("show");
+      textArea.select();
+    }, 10);
+  }
+
+  // Close the share modal
+  function closeShareModal() {
+    const shareModal = document.getElementById("share-text-modal");
+    if (shareModal) {
+      shareModal.classList.remove("show");
+      setTimeout(() => {
+        shareModal.classList.add("hidden");
+      }, 300);
     }
   }
 
