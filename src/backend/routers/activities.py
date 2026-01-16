@@ -42,6 +42,14 @@ def get_activities(
         query["schedule_details.end_time"] = {"$lte": end_time}
     
     if difficulty_level:
+        # Validate difficulty_level parameter
+        valid_levels = ["Beginner", "Intermediate", "Advanced", "All"]
+        if difficulty_level not in valid_levels:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid difficulty_level. Must be one of: {', '.join(valid_levels)}"
+            )
+        
         if difficulty_level == "All":
             # "All" means only activities with no difficulty specified
             query["difficulty_level"] = {"$exists": False}

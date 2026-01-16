@@ -46,6 +46,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // Authentication state
   let currentUser = null;
 
+  // Helper function to escape HTML to prevent XSS
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
+  }
+
   // Time range mappings for the dropdown
   const timeRanges = {
     morning: { start: "06:00", end: "08:00" }, // Before school hours
@@ -401,6 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Handle difficulty level filter
+      // Empty string means "All Levels" - don't send parameter to show all activities
       if (currentDifficultyLevel) {
         queryParams.push(`difficulty_level=${encodeURIComponent(currentDifficultyLevel)}`);
       }
@@ -521,8 +534,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Create difficulty level badge (only if difficulty_level exists)
     const difficultyBadgeHtml = details.difficulty_level ? `
-      <span class="difficulty-badge difficulty-${details.difficulty_level.toLowerCase()}">
-        ${details.difficulty_level}
+      <span class="difficulty-badge difficulty-${escapeHtml(details.difficulty_level.toLowerCase())}">
+        ${escapeHtml(details.difficulty_level)}
       </span>
     ` : '';
 
