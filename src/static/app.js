@@ -945,8 +945,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="close-share-modal">&times;</span>
           <h3>Share Activity</h3>
           <p>Copy the text below to share this activity:</p>
-          <textarea id="share-text-area" readonly style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: Arial, sans-serif; font-size: 0.9rem; resize: vertical;"></textarea>
-          <button id="copy-share-text-button" style="margin-top: 10px; width: 100%;">Copy to Clipboard</button>
+          <textarea id="share-text-area" readonly></textarea>
+          <button id="copy-share-text-button">Copy to Clipboard</button>
         </div>
       `;
       document.body.appendChild(shareModal);
@@ -966,30 +966,48 @@ document.addEventListener("DOMContentLoaded", () => {
     const textArea = document.getElementById("share-text-area");
     textArea.value = textToShare;
     
-    // Set up copy button
+    // Set up copy button - remove old listener by replacing the handler
     const copyButton = document.getElementById("copy-share-text-button");
-    const newCopyButton = copyButton.cloneNode(true);
-    copyButton.parentNode.replaceChild(newCopyButton, copyButton);
-    
-    newCopyButton.addEventListener("click", () => {
+    copyButton.onclick = () => {
       textArea.select();
       textArea.setSelectionRange(0, 99999); // For mobile devices
       
-      try {
-        document.execCommand("copy");
-        showMessage("Text copied to clipboard!", "success");
-        closeShareModal();
-      } catch (error) {
-        console.error("Failed to copy:", error);
-        showMessage("Please manually select and copy the text above.", "info");
+      // Try modern Clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard
+          .writeText(textToShare)
+          .then(() => {
+            showMessage("Text copied to clipboard!", "success");
+            closeShareModal();
+          })
+          .catch((error) => {
+            console.error("Clipboard API failed:", error);
+            // Fallback to execCommand
+            fallbackCopyToClipboard(textArea);
+          });
+      } else {
+        // Fallback to execCommand
+        fallbackCopyToClipboard(textArea);
       }
-    });
+    };
 
     shareModal.classList.remove("hidden");
     setTimeout(() => {
       shareModal.classList.add("show");
       textArea.select();
     }, 10);
+  }
+
+  // Fallback copy method using deprecated execCommand
+  function fallbackCopyToClipboard(textArea) {
+    try {
+      document.execCommand("copy");
+      showMessage("Text copied to clipboard!", "success");
+      closeShareModal();
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      showMessage("Please manually select and copy the text above.", "info");
+    }
   }
 
   // Close the share modal

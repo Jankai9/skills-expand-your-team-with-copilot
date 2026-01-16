@@ -474,7 +474,8 @@ button {
 }
 
 .close-modal,
-.close-login-modal {
+.close-login-modal,
+.close-share-modal {
   position: absolute;
   right: 12px;
   top: 8px;
@@ -482,6 +483,24 @@ button {
   cursor: pointer;
   color: var(--text-secondary);
   line-height: 1;
+}
+
+/* Share modal specific styles */
+#share-text-area {
+  width: 100%;
+  height: 150px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  resize: vertical;
+  margin-top: 10px;
+}
+
+#copy-share-text-button {
+  margin-top: 10px;
+  width: 100%;
 }
 
 /* Login modal specific styling */
