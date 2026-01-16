@@ -552,6 +552,12 @@ document.addEventListener("DOMContentLoaded", () => {
             .join("")}
         </ul>
       </div>
+      <div class="share-buttons">
+        <button class="share-button" data-activity="${name}" data-description="${details.description}" data-schedule="${formattedSchedule}" title="Share this activity">
+          <span class="share-icon">🔗</span>
+          <span class="share-text">Share</span>
+        </button>
+      </div>
       <div class="activity-card-actions">
         ${
           currentUser
@@ -586,6 +592,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    shareButton.addEventListener("click", () => {
+      handleShareActivity(name, details.description, formattedSchedule);
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -854,6 +866,65 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
+
+  // Function to handle sharing an activity
+  async function handleShareActivity(activityName, description, schedule) {
+    const shareText = `Check out ${activityName} at Mergington High School!\n${description}\nSchedule: ${schedule}`;
+    const shareUrl = window.location.href;
+
+    // Check if the Web Share API is supported
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${activityName} - Mergington High School`,
+          text: shareText,
+          url: shareUrl,
+        });
+        showMessage("Activity shared successfully!", "success");
+      } catch (error) {
+        // User cancelled the share or error occurred
+        if (error.name !== "AbortError") {
+          console.error("Error sharing:", error);
+          // Fallback to copy to clipboard
+          fallbackShare(shareText, shareUrl);
+        }
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      fallbackShare(shareText, shareUrl);
+    }
+  }
+
+  // Fallback sharing method - copy to clipboard
+  function fallbackShare(shareText, shareUrl) {
+    const fullText = `${shareText}\n\nView activities at: ${shareUrl}`;
+    
+    // Try to copy to clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(fullText)
+        .then(() => {
+          showMessage(
+            "Activity details copied to clipboard! You can now paste and share.",
+            "success"
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to copy to clipboard:", error);
+          showMessage(
+            "Unable to share. Please copy the activity details manually.",
+            "info"
+          );
+        });
+    } else {
+      // Last resort - show the text in an alert
+      showMessage(
+        "Share this activity by copying the text below and sharing with friends.",
+        "info"
+      );
+      prompt("Copy this text to share:", fullText);
+    }
+  }
 
   // Expose filter functions to window for future UI control
   window.activityFilters = {
