@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Helper function to escape HTML to prevent XSS
   function escapeHtml(text) {
+    if (!text) return '';
     const map = {
       '&': '&amp;',
       '<': '&lt;',
@@ -55,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
       '"': '&quot;',
       "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
+    return String(text).replace(/[&<>"']/g, (m) => map[m]);
   }
 
   // Time range mappings for the dropdown
