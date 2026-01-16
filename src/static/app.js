@@ -566,7 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       </div>
       <div class="share-buttons">
-        <button class="share-button" data-activity="${escapeHtml(name)}" data-description="${escapeHtml(details.description)}" data-schedule="${escapeHtml(formattedSchedule)}" title="Share this activity">
+        <button class="share-button" title="Share this activity">
           <span class="share-icon">🔗</span>
           <span class="share-text">Share</span>
         </button>
@@ -966,9 +966,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const textArea = document.getElementById("share-text-area");
     textArea.value = textToShare;
     
-    // Set up copy button - remove old listener by replacing the handler
+    // Set up copy button - use a unique handler function for each modal open
     const copyButton = document.getElementById("copy-share-text-button");
-    copyButton.onclick = () => {
+    
+    // Remove any existing click listeners by cloning and replacing
+    const newCopyButton = copyButton.cloneNode(true);
+    copyButton.parentNode.replaceChild(newCopyButton, copyButton);
+    
+    newCopyButton.addEventListener("click", () => {
       textArea.select();
       textArea.setSelectionRange(0, 99999); // For mobile devices
       
@@ -989,7 +994,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Fallback to execCommand
         fallbackCopyToClipboard(textArea);
       }
-    };
+    });
 
     shareModal.classList.remove("hidden");
     setTimeout(() => {
@@ -1001,12 +1006,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fallback copy method using deprecated execCommand
   function fallbackCopyToClipboard(textArea) {
     try {
-      document.execCommand("copy");
-      showMessage("Text copied to clipboard!", "success");
-      closeShareModal();
+      const successful = document.execCommand("copy");
+      if (successful) {
+        showMessage("Text copied to clipboard!", "success");
+        closeShareModal();
+      } else {
+        showMessage(
+          "Unable to copy automatically. Please manually select and copy the text.",
+          "info"
+        );
+      }
     } catch (error) {
       console.error("Failed to copy:", error);
-      showMessage("Please manually select and copy the text above.", "info");
+      showMessage(
+        "Unable to copy automatically. Please manually select and copy the text.",
+        "info"
+      );
     }
   }
 
