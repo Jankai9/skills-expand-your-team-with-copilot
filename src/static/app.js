@@ -37,7 +37,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateThemeIcon(theme) {
-    themeIcon.textContent = theme === "dark" ? "☀️" : "🌙";
+    if (themeIcon) {
+      themeIcon.textContent = theme === "dark" ? "☀️" : "🌙";
+    }
   }
 
   function toggleTheme() {
@@ -49,7 +51,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Event listener for theme toggle
-  themeToggle.addEventListener("click", toggleTheme);
+  if (themeToggle) {
+    themeToggle.addEventListener("click", toggleTheme);
+  }
 
   // Activity categories with corresponding colors
   const activityTypes = {
