@@ -74,6 +74,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Authentication state
   let currentUser = null;
 
+  // Helper function to escape HTML for safe insertion into attributes
+  function escapeHtml(unsafe) {
+    if (unsafe === null || unsafe === undefined) {
+      return "";
+    }
+    return String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Time range mappings for the dropdown
   const timeRanges = {
     morning: { start: "06:00", end: "08:00" }, // Before school hours
@@ -582,6 +595,12 @@ document.addEventListener("DOMContentLoaded", () => {
             .join("")}
         </ul>
       </div>
+      <div class="share-buttons">
+        <button class="share-button" title="Share this activity">
+          <span class="share-icon">🔗</span>
+          <span class="share-text">Share</span>
+        </button>
+      </div>
       <div class="activity-card-actions">
         ${
           currentUser
@@ -616,6 +635,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    shareButton.addEventListener("click", () => {
+      handleShareActivity(name, details.description, formattedSchedule);
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -884,6 +909,162 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
+
+  // Function to handle sharing an activity
+  async function handleShareActivity(activityName, description, schedule) {
+    const shareText = `Check out ${activityName} at Mergington High School!\n${description}\nSchedule: ${schedule}`;
+    const shareUrl = window.location.href;
+
+    // Check if the Web Share API is supported
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${activityName} - Mergington High School`,
+          text: shareText,
+          url: shareUrl,
+        });
+        showMessage("Activity shared successfully!", "success");
+      } catch (error) {
+        // User cancelled the share or error occurred
+        if (error.name !== "AbortError") {
+          console.error("Error sharing:", error);
+          // Fallback to copy to clipboard
+          fallbackShare(shareText, shareUrl);
+        }
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      fallbackShare(shareText, shareUrl);
+    }
+  }
+
+  // Fallback sharing method - copy to clipboard
+  function fallbackShare(shareText, shareUrl) {
+    const fullText = `${shareText}\n\nView activities at: ${shareUrl}`;
+    
+    // Try to copy to clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(fullText)
+        .then(() => {
+          showMessage(
+            "Activity details copied to clipboard! You can now paste and share.",
+            "success"
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to copy to clipboard:", error);
+          showShareModal(fullText);
+        });
+    } else {
+      // Clipboard API not available - show modal with text
+      showShareModal(fullText);
+    }
+  }
+
+  // Show a modal with shareable text for manual copying
+  function showShareModal(textToShare) {
+    // Create or get the share modal
+    let shareModal = document.getElementById("share-text-modal");
+    if (!shareModal) {
+      shareModal = document.createElement("div");
+      shareModal.id = "share-text-modal";
+      shareModal.className = "modal hidden";
+      shareModal.innerHTML = `
+        <div class="modal-content">
+          <span class="close-share-modal">&times;</span>
+          <h3>Share Activity</h3>
+          <p>Copy the text below to share this activity:</p>
+          <textarea id="share-text-area" readonly></textarea>
+          <button id="copy-share-text-button">Copy to Clipboard</button>
+        </div>
+      `;
+      document.body.appendChild(shareModal);
+
+      // Add event listeners
+      const closeBtn = shareModal.querySelector(".close-share-modal");
+      closeBtn.addEventListener("click", closeShareModal);
+
+      shareModal.addEventListener("click", (event) => {
+        if (event.target === shareModal) {
+          closeShareModal();
+        }
+      });
+    }
+
+    // Set the text and show the modal
+    const textArea = document.getElementById("share-text-area");
+    textArea.value = textToShare;
+    
+    // Set up copy button - use a unique handler function for each modal open
+    const copyButton = document.getElementById("copy-share-text-button");
+    
+    // Remove any existing click listeners by cloning and replacing
+    const newCopyButton = copyButton.cloneNode(true);
+    copyButton.parentNode.replaceChild(newCopyButton, copyButton);
+    
+    newCopyButton.addEventListener("click", () => {
+      textArea.select();
+      textArea.setSelectionRange(0, 99999); // For mobile devices
+      
+      // Try modern Clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard
+          .writeText(textToShare)
+          .then(() => {
+            showMessage("Text copied to clipboard!", "success");
+            closeShareModal();
+          })
+          .catch((error) => {
+            console.error("Clipboard API failed:", error);
+            // Fallback to execCommand
+            fallbackCopyToClipboard(textArea);
+          });
+      } else {
+        // Fallback to execCommand
+        fallbackCopyToClipboard(textArea);
+      }
+    });
+
+    shareModal.classList.remove("hidden");
+    setTimeout(() => {
+      shareModal.classList.add("show");
+      textArea.select();
+    }, 10);
+  }
+
+  // Fallback copy method using deprecated execCommand
+  function fallbackCopyToClipboard(textArea) {
+    try {
+      const successful = document.execCommand("copy");
+      if (successful) {
+        showMessage("Text copied to clipboard!", "success");
+        closeShareModal();
+      } else {
+        showMessage(
+          "Unable to copy automatically. Please manually select and copy the text.",
+          "info"
+        );
+      }
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      showMessage(
+        "Unable to copy automatically. Please manually select and copy the text.",
+        "info"
+      );
+    }
+  }
+
+  // Close the share modal
+  function closeShareModal() {
+    const shareModal = document.getElementById("share-text-modal");
+    if (shareModal) {
+      shareModal.classList.remove("show");
+      setTimeout(() => {
+        shareModal.classList.add("hidden");
+      }, 300);
+    }
+  }
 
   // Expose filter functions to window for future UI control
   window.activityFilters = {
